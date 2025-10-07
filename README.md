@@ -1,8 +1,3 @@
-Mohon maaf atas kendalanya. Terkadang tautan unduhan bisa mengalami masalah.
-
-Sebagai gantinya, berikut adalah isi lengkap dari file `README.md` dalam format teks biasa yang bisa Anda salin dan tempel langsung. Ini adalah cara yang paling andal.
-
-````text
 # Sinkronisasi Presensi Otomatis (Simpegnas BKN)
 
 Repositori ini berisi kumpulan skrip `bash` yang dirancang untuk mengotomatisasi proses sinkronisasi data presensi (kehadiran) pegawai dari **API Simpegnas BKN**. Skrip ini akan mengambil data secara terjadwal, menyimpannya ke database MySQL lokal, melakukan proses ETL (Extract, Transform, Load), dan mengirimkan laporan status melalui Telegram.

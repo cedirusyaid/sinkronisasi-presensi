@@ -2,7 +2,7 @@
 # File Konfigurasi & Rahasia
 # ==================================
 # Jangan pernah mengirimkan file .env yang berisi kredensial sensitif
-.env
+#.env
 
 
 # ==================================

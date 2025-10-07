@@ -1,7 +1,7 @@
 # Sinkronisasi Presensi Otomatis (Simpegnas BKN)
 
 Repositori ini berisi kumpulan skrip `bash` yang dirancang untuk mengotomatisasi proses sinkronisasi data presensi (kehadiran) pegawai dari **API Simpegnas BKN**. Skrip ini akan mengambil data secara terjadwal, menyimpannya ke database MySQL lokal, melakukan proses ETL (Extract, Transform, Load), dan mengirimkan laporan status melalui Telegram.
-
+ 
 ## ✨ Fitur Utama
 
 * **Sinkronisasi Otomatis**: Mengambil data rekap presensi harian per kantor dari API Simpegnas BKN.

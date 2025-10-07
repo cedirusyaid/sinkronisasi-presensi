@@ -1,3 +1,8 @@
+Mohon maaf atas kendalanya. Terkadang tautan unduhan bisa mengalami masalah.
+
+Sebagai gantinya, berikut adalah isi lengkap dari file `README.md` dalam format teks biasa yang bisa Anda salin dan tempel langsung. Ini adalah cara yang paling andal.
+
+````text
 # Sinkronisasi Presensi Otomatis (Simpegnas BKN)
 
 Repositori ini berisi kumpulan skrip `bash` yang dirancang untuk mengotomatisasi proses sinkronisasi data presensi (kehadiran) pegawai dari **API Simpegnas BKN**. Skrip ini akan mengambil data secara terjadwal, menyimpannya ke database MySQL lokal, melakukan proses ETL (Extract, Transform, Load), dan mengirimkan laporan status melalui Telegram.
@@ -64,7 +69,7 @@ Tabel ini berfungsi sebagai **tabel sementara** atau *staging area*. Data yang d
 
 * `id` (int, Primary Key, Auto Increment): ID unik untuk setiap baris data presensi.
 * `nip` (varchar): NIP pegawai yang melakukan absensi.
-* `tgl` (date): Tanggal presensi.
+* `tgl` (date): Tanggal absensi.
 * `jam_pagi`, `jam_siang`, `jam_sore` (time): Catatan waktu absensi yang menjadi target utama untuk dipindahkan.
 * `sync` (tinyint): Kolom ini adalah **flag** atau penanda status pemrosesan.
     * **`0`**: Menandakan data ini baru dan siap dipindahkan ke `tb_scanlog_ars`.
@@ -96,3 +101,103 @@ Pastikan server Anda memiliki:
 ```bash
 git clone [https://github.com/cedirusyaid/sinkronisasi-presensi.git](https://github.com/cedirusyaid/sinkronisasi-presensi.git)
 cd sinkronisasi-presensi
+````
+
+### 3\. Setup Database
+
+Impor file `pegawai_db.sql` yang tersedia ke dalam server MySQL Anda.
+
+```bash
+mysql -u username -p nama_database < pegawai_db.sql
+```
+
+### 4\. Konfigurasi Environment (`.env`)
+
+Buat file `.env` di direktori utama proyek. File ini berisi semua informasi sensitif dan konfigurasi.
+
+```ini
+# Konfigurasi Database MySQL
+DB_HOST="localhost"
+DB_USER="user_database"
+DB_PASS="password_database"
+DB_NAME="pegawai_db"
+
+# Kunci API Presensi Simpegnas BKN
+API_KEY="KUNCI_API_ANDA"
+
+# --- Konfigurasi Notifikasi Telegram ---
+# Token Bot yang didapat dari @BotFather
+TELEGRAM_BOT_TOKEN="TOKEN_BOT_TELEGRAM_ANDA"
+
+# Chat ID tujuan (bisa ID personal atau ID grup)
+TELEGRAM_CHAT_ID="CHAT_ID_TUJUAN_ANDA"
+```
+
+#### Penjelasan Variabel `.env`:
+
+  * **`DB_HOST`**: Alamat server database Anda (biasanya `localhost`).
+  * **`DB_USER`**: Nama pengguna untuk login ke database.
+  * **`DB_PASS`**: Kata sandi untuk pengguna database tersebut.
+  * **`DB_NAME`**: Nama database yang Anda gunakan.
+  * **`API_KEY`**: Kunci API atau token otorisasi yang Anda dapatkan dari penyedia layanan (Simpegnas BKN) untuk mengakses data presensi.
+  * **`TELEGRAM_BOT_TOKEN`**: Token unik untuk bot Telegram Anda.
+      * **Cara mendapatkan**: Buka Telegram, cari bot bernama `@BotFather`, mulai percakapan, dan ikuti perintah untuk membuat bot baru (`/newbot`). BotFather akan memberikan token ini.
+  * **`TELEGRAM_CHAT_ID`**: ID unik dari pengguna, grup, atau channel Telegram yang akan menerima notifikasi.
+      * **Cara mendapatkan (Chat Pribadi)**: Kirim pesan ke bot `@userinfobot`, dan ia akan membalas dengan User ID Anda.
+      * **Cara mendapatkan (Grup/Channel)**:
+        1.  Tambahkan bot Anda ke dalam grup atau channel.
+        2.  Kirim pesan apa pun ke grup/channel tersebut.
+        3.  Buka browser dan akses URL berikut (ganti `TOKEN_BOT_ANDA` dengan token bot Anda): `https://api.telegram.org/botTOKEN_BOT_ANDA/getUpdates`.
+        4.  Cari objek `chat`, dan temukan `id`. ID untuk grup/channel biasanya diawali dengan tanda minus (`-`).
+
+### 5\. Atur Hak Akses
+
+Jadikan semua skrip dapat dieksekusi:
+
+```bash
+chmod +x *.sh
+```
+
+-----
+
+## 🚀 Penggunaan
+
+### Menjalankan dengan Cron (Direkomendasikan)
+
+Cara terbaik untuk menjalankan sistem ini adalah melalui `cron`. Hapus semua jadwal cron lama dan ganti dengan **satu baris** yang memanggil `cron_dispatcher.sh`.
+
+1.  Buka editor crontab:
+
+    ```bash
+    crontab -e
+    ```
+
+2.  Tambahkan baris berikut (contoh berjalan setiap 10 menit):
+
+    ```crontab
+    */10 * * * * /path/lengkap/ke/folder/sinkronisasi-presensi/cron_dispatcher.sh >> /path/lengkap/ke/folder/sinkronisasi-presensi/dispatcher.log 2>&1
+    ```
+
+      * Pastikan untuk menggunakan **path absolut** ke skrip Anda.
+      * `>> ... dispatcher.log 2>&1` akan menyimpan semua log eksekusi ke file `dispatcher.log`, yang sangat berguna untuk debugging.
+
+### Menjalankan Manual
+
+Anda juga bisa menjalankan setiap skrip secara manual untuk keperluan pengujian. Pastikan Anda berada di dalam direktori proyek.
+
+  * **Menjalankan alur utama (sesuai jam):**
+    ```bash
+    ./cron_dispatcher.sh
+    ```
+  * **Menjalankan sinkronisasi massal untuk 30 hari:**
+    ```bash
+    ./sync_presensi_range.sh 30
+    ```
+  * **Menjalankan pemindahan data ke scanlog secara manual:**
+    ```bash
+    ./sync_to_scanlog.sh
+    ```
+
+<!-- end list -->
+
+```

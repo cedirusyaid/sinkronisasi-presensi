@@ -1,0 +1,39 @@
+# ==================================
+# File Konfigurasi & Rahasia
+# ==================================
+# Jangan pernah mengirimkan file .env yang berisi kredensial sensitif
+.env
+
+
+# ==================================
+# Log dan File Status (Runtime)
+# ==================================
+# Direktori untuk menyimpan log eksekusi per kantor
+run_logs/
+
+# File log yang dihasilkan oleh cron dispatcher
+*.log
+
+# File penanda status untuk skrip
+last_office_index.txt
+sync_complete_*.lock
+
+
+# ==================================
+# File Database
+# ==================================
+# Hindari mengirimkan file dump SQL yang besar dan berisi data
+*.sql
+
+
+# ==================================
+# File Sistem Operasi & Editor
+# ==================================
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# VS Code
+.vscode/

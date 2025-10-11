@@ -109,8 +109,23 @@ else
             tgl=$(echo "$presensi" | jq -r '.tgl'); pagi=$(echo "$presensi" | jq -r '.pagi'); siang=$(echo "$presensi" | jq -r '.siang'); sore=$(echo "$presensi" | jq -r '.sore'); keterangan=$(echo "$presensi" | jq -r '.keterangan');
             jam_pagi_sql=$([ "$jam_pagi" == "null" ] && echo "NULL" || echo "'$jam_pagi'"); jam_siang_sql=$([ "$jam_siang" == "null" ] && echo "NULL" || echo "'$jam_siang'"); jam_sore_sql=$([ "$jam_sore" == "null" ] && echo "NULL" || echo "'$jam_sore'");
             SQL_PRESENSI="INSERT INTO presensi (nip, tgl, pagi, siang, sore, jam_pagi, jam_siang, jam_sore, keterangan) VALUES ('${nip}', '${tgl}', '${pagi}', '${siang}', '${sore}', ${jam_pagi_sql}, ${jam_siang_sql}, ${jam_sore_sql}, '${keterangan}') ON DUPLICATE KEY UPDATE pagi = VALUES(pagi), siang = VALUES(siang), sore = VALUES(sore), jam_pagi = VALUES(jam_pagi), jam_siang = VALUES(jam_siang), jam_sore = VALUES(jam_sore), keterangan = VALUES(keterangan);";
-            mysql -h"${DB_HOST}" -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" -e "${SQL_PRESENSI}";
-            inserted_this_office=$((inserted_this_office + 1));
+            
+            # Menjalankan query dan menangkap output error
+            ERROR_OUTPUT=$(mysql -h"${DB_HOST}" -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" -e "${SQL_PRESENSI}" 2>&1)
+            EXIT_CODE=$?
+
+            # Cek jika ada error
+            if [ ${EXIT_CODE} -ne 0 ]; then
+                echo ""
+                echo "--- MYSQL ERROR ---"
+                echo "Gagal menjalankan query untuk NIP: ${nip} pada tanggal ${tgl}"
+                echo "Error: ${ERROR_OUTPUT}"
+                echo "-------------------"
+                echo ""
+            else
+                # Hanya increment jika berhasil
+                inserted_this_office=$((inserted_this_office + 1));
+            fi
         done < <(echo "$pegawai" | jq -c '.presensi[]');
     done < <(echo "$PRESENSI_RESPONSE" | jq -c '.data[]');
 fi

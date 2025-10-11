@@ -127,6 +127,19 @@ for (( i=($DAYS_TO_FETCH-1); i>=0; i-- )); do
 
 done # Akhir dari loop tanggal
 
+# === TAHAP BARU: Membersihkan Log Lama ===
+echo -e "\n--- Tahap Pembersihan: Menghapus file log lama ---"
+# Cari file di run_logs yang lebih tua dari 1 hari dan hapus
+DELETED_LOG_COUNT=$(find run_logs/ -type f -mtime +0 -print | wc -l)
+CLEANUP_REPORT_MSG=""
+if [ "$DELETED_LOG_COUNT" -gt 0 ]; then
+    find run_logs/ -type f -mtime +0 -delete
+    echo "✅ Berhasil menghapus ${DELETED_LOG_COUNT} file log."
+    CLEANUP_REPORT_MSG=$'\n'"🧹 *Pembersihan:* ${DELETED_LOG_COUNT} log lama dihapus."
+else
+    echo "✅ Tidak ada file log lama yang perlu dihapus."
+fi
+
 # --- Menghitung Durasi Eksekusi ---
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
@@ -137,6 +150,7 @@ echo -e "\n--- Tahap 3: Mengirim laporan ke Telegram ---"
 REPORT_MESSAGE+=$'\n\n'"--- *Ringkasan* ---"
 REPORT_MESSAGE+=$'\n'"📊 *Total Data Diinput:* ${TOTAL_DATA_DIINPUT}"
 REPORT_MESSAGE+=$'\n'"⏱️ *Durasi Eksekusi:* ${DURATION} detik"
+REPORT_MESSAGE+="${CLEANUP_REPORT_MSG}"
 
 # ========================================================================
 # PERUBAHAN 3: Tambahkan blok statistik API ke dalam laporan

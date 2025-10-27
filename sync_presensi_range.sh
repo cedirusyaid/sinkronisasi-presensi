@@ -40,7 +40,7 @@ API_PRESENSI_URL="https://api-absensi.simpegnas.go.id/absensi/api/get/rekap-by-k
 # --- Variabel untuk Laporan ---
 START_DATE_REPORT=$(date -d "$((DAYS_TO_FETCH - 1)) days ago" +%Y-%m-%d)
 END_DATE_REPORT=$(date +%Y-%m-%d)
-REPORT_MESSAGE="📅 *Laporan Update Presensi Massal* 📅"
+REPORT_MESSAGE="📅 *Laporan Update #PresensiMassal* 📅"
 REPORT_MESSAGE+=$'\n\n'"*Periode:* ${DAYS_TO_FETCH} hari (${START_DATE_REPORT} s/d ${END_DATE_REPORT})"
 TOTAL_DATA_DIINPUT=0
 
@@ -127,6 +127,11 @@ for (( i=($DAYS_TO_FETCH-1); i>=0; i-- )); do
 
 done # Akhir dari loop tanggal
 
+if [ "$TOTAL_DATA_DIINPUT" -gt 0 ]; then
+    echo "   -> ${TOTAL_DATA_DIINPUT} data baru diinput. Memicu sync_to_scanlog.sh..."
+    ./sync_to_scanlog.sh
+fi
+
 # === TAHAP BARU: Membersihkan Log Lama ===
 echo -e "\n--- Tahap Pembersihan: Menghapus file log lama ---"
 # Cari file di run_logs yang lebih tua dari 1 hari dan hapus
@@ -144,12 +149,21 @@ fi
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
 
+FORMATTED_DURATION=""
+if (( DURATION >= 60 )); then
+    MINUTES=$((DURATION / 60))
+    SECONDS=$((DURATION % 60))
+    FORMATTED_DURATION="${MINUTES} menit ${SECONDS} detik"
+else
+    FORMATTED_DURATION="${DURATION} detik"
+fi
+
 # === TAHAP 3: Mengirim Laporan ke Telegram ===
 echo -e "\n--- Tahap 3: Mengirim laporan ke Telegram ---"
 
 REPORT_MESSAGE+=$'\n\n'"--- *Ringkasan* ---"
 REPORT_MESSAGE+=$'\n'"📊 *Total Data Diinput:* ${TOTAL_DATA_DIINPUT}"
-REPORT_MESSAGE+=$'\n'"⏱️ *Durasi Eksekusi:* ${DURATION} detik"
+REPORT_MESSAGE+=$'\n'"⏱️ *Durasi Eksekusi:* ${FORMATTED_DURATION}"
 REPORT_MESSAGE+="${CLEANUP_REPORT_MSG}"
 
 # ========================================================================
@@ -170,5 +184,15 @@ echo "✅ Laporan berhasil dikirim."
 # Buat file penanda bahwa proses hari ini telah selesai.
 touch "${LOCK_FILE}"
 echo "✅ Lock file dibuat. Proses tidak akan berjalan lagi hari ini."
+
+# Hapus lock file dari hari sebelumnya
+YESTERDAY=$(date -d "yesterday" +%Y-%m-%d)
+YESTERDAY_LOCK_FILE="sync_complete_${YESTERDAY}.lock"
+if [ -f "${YESTERDAY_LOCK_FILE}" ]; then
+    rm -f "${YESTERDAY_LOCK_FILE}"
+    echo "✅ Lock file kemarin (${YESTERDAY_LOCK_FILE}) berhasil dihapus."
+else
+    echo "☑️ Tidak ada lock file kemarin (${YESTERDAY_LOCK_FILE}) untuk dihapus."
+fi
 
 echo -e "\n🎉 Semua proses telah selesai."

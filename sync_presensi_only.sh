@@ -84,15 +84,17 @@ if [ -z "$KANTOR_TO_PROCESS" ]; then
 fi
 
 # --- Variabel Laporan ---
-REPORT_MESSAGE="📅 *Laporan Update Presensi (${WINDOW})* 📅"
-REPORT_MESSAGE+=$'\n\n'"*Tanggal:* ${TARGET_DATE}"
+HAS_ERROR=0
 
 # --- Proses satu kantor yang sudah dipilih ---
 kantor_id=$(echo "$KANTOR_TO_PROCESS" | jq -r '.id')
 nama_kantor=$(echo "$KANTOR_TO_PROCESS" | jq -r '.nama_kantor')
 inserted_this_office=0
 
-echo -e "\n--- Tahap 2: Memproses data presensi untuk: ${nama_kantor} ---"
+REPORT_MESSAGE="📅 *#LaporanPresensi #${kantor_id} (${WINDOW})* 📅"
+REPORT_MESSAGE+=$'\n\n'"*Tanggal:* ${TARGET_DATE}"
+
+echo -e "\\n--- Tahap 2: Memproses data presensi untuk: ${nama_kantor} ---"
 PRESENSI_RESPONSE=$(curl -s -X 'GET' "${API_PRESENSI_URL}?kantor_id=${kantor_id}&start_date=${TARGET_DATE}&end_date=${TARGET_DATE}" -H 'accept: */*' -H "presensi-key: ${API_KEY}")
 pegawai_count_from_api=$(echo "$PRESENSI_RESPONSE" | jq '.data | length' 2>/dev/null)
 
@@ -116,10 +118,15 @@ else
 
             # Cek jika ada error
             if [ ${EXIT_CODE} -ne 0 ]; then
+                HAS_ERROR=1
+                ERROR_MSG="Gagal query untuk NIP ${nip} (${tgl}): ${ERROR_OUTPUT}"
+                REPORT_MESSAGE+=$'\n\n'"❌ *MYSQL ERROR*
+\`\`\`
+${ERROR_MSG}
+\`\`\`"
                 echo ""
                 echo "--- MYSQL ERROR ---"
-                echo "Gagal menjalankan query untuk NIP: ${nip} pada tanggal ${tgl}"
-                echo "Error: ${ERROR_OUTPUT}"
+                echo "${ERROR_MSG}"
                 echo "-------------------"
                 echo ""
             else
@@ -139,14 +146,19 @@ if [ "$inserted_this_office" -gt 0 ]; then
 fi
 
 # --- Laporan dan Pengiriman ---
-REPORT_MESSAGE+=$'\n\n'"✅ *${nama_kantor}*"
-REPORT_MESSAGE+=$'\n'"*Data Diinput:* ${inserted_this_office} data"
-END_TIME=$(date +%s); DURATION=$((END_TIME - START_TIME));
-REPORT_MESSAGE+=$'\n'"⏱️ *Durasi Eksekusi:* ${DURATION} detik"
+# Hanya kirim laporan jika ada data yang diinput atau terjadi error
+if [[ "$inserted_this_office" -gt 0 || "$HAS_ERROR" -eq 1 ]]; then
+    REPORT_MESSAGE+=$'\n\n'"✅ *${nama_kantor}*"
+    REPORT_MESSAGE+=$'\n'"*Data Diinput:* ${inserted_this_office} data"
+    END_TIME=$(date +%s); DURATION=$((END_TIME - START_TIME));
+    REPORT_MESSAGE+=$'\n'"⏱️ *Durasi Eksekusi:* ${DURATION} detik"
 
-echo -e "\n--- Tahap 3: Mengirim laporan ke Telegram ---"
-curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" --data-urlencode "text=${REPORT_MESSAGE}" --data-urlencode "parse_mode=Markdown" > /dev/null
-echo "✅ Laporan berhasil dikirim."
+    echo -e "\\n--- Tahap 3: Mengirim laporan ke Telegram ---"
+    curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" --data-urlencode "text=${REPORT_MESSAGE}" --data-urlencode "parse_mode=Markdown" > /dev/null
+    echo "✅ Laporan berhasil dikirim."
+else
+    echo -e "\\n--- Tahap 3: Tidak ada data baru atau error. Laporan tidak dikirim ---"
+fi
 
 # --- Buat lock file dan update indeks ---
 FINAL_LOCK_FILE="${LOG_DIR}/${TODAY}_${kantor_id}_${WINDOW}.lock"
@@ -156,4 +168,4 @@ echo "✅ Lock file dibuat: ${FINAL_LOCK_FILE}"
 NEXT_INDEX=$(( (PROCESSED_INDEX + 1) % TOTAL_KANTOR ))
 echo "${NEXT_INDEX}" > "${STATE_FILE}"
 
-echo -e "\n🎉 Proses untuk kantor ${nama_kantor} telah selesai."
+echo -e "\\n🎉 Proses untuk kantor ${nama_kantor} telah selesai."
